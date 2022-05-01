@@ -1,6 +1,6 @@
 use super::request;
 use anyhow::{bail, Result};
-use reqwest::{multipart, Client};
+use reqwest::{multipart, Client, Proxy};
 use std::{future::Future, sync::Arc};
 
 /// 不实现 Clone，因为需要在 Drop 的时候登出
@@ -18,8 +18,13 @@ impl QbClient {
         base_url: impl Into<Arc<str>>,
         username: &str,
         password: &str,
+        proxy: Option<Proxy>,
     ) -> Result<Self> {
-        let client = reqwest::ClientBuilder::new().cookie_store(true).build()?;
+        let mut client_builder = reqwest::ClientBuilder::new().cookie_store(true);
+        if let Some(proxy) = proxy {
+            client_builder = client_builder.proxy(proxy);
+        }
+        let client = client_builder.build()?;
         let this = Self {
             inner: client,
             base_url: base_url.into(),

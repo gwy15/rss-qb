@@ -7,6 +7,10 @@ pub struct Config {
     /// The path to the database file. Example: `/home/user/data.sqlite`
     pub db_uri: PathBuf,
 
+    /// global proxy
+    #[serde(deserialize_with = "deserialize_proxy")]
+    pub proxy: Option<reqwest::Proxy>,
+
     pub email: Option<Email>,
 
     pub qb: QbConfig,
@@ -49,10 +53,42 @@ fn default_interval() -> u64 {
     15 * 60
 }
 
+fn deserialize_proxy<'de, D>(d: D) -> Result<Option<reqwest::Proxy>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let s: Option<String> = serde::Deserialize::deserialize(d)?;
+    match s {
+        Some(s) => {
+            let proxy =
+                reqwest::Proxy::all(&s).map_err(|e| serde::de::Error::custom(format!("{}", e)))?;
+            Ok(Some(proxy))
+        }
+        None => Ok(None),
+    }
+}
+
 #[derive(Deserialize)]
 pub struct Email {
     pub sender: String,
     pub sender_pswd: String,
     pub smtp_host: String,
     pub receiver: String,
+}
+
+#[cfg(test)]
+mod tests {
+    use reqwest::Proxy;
+
+    use super::*;
+    #[test]
+    fn test_deserialize_proxy() {
+        #[derive(Debug, Deserialize)]
+        struct H {
+            #[serde(deserialize_with = "deserialize_proxy")]
+            h: Option<Proxy>,
+        }
+        let h: H = toml::from_str(r#"h = "socks5h://127.0.0.1:1080" "#).unwrap();
+        assert!(h.h.is_some());
+    }
 }

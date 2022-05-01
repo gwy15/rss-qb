@@ -61,6 +61,7 @@ async fn run_config(config: Config, stop: a_broadcast::Sender<()>) -> Result<()>
         config.qb.base_url.clone(),
         &config.qb.username,
         &config.qb.password,
+        config.proxy,
     )
     .await?;
     let qb_client = Arc::new(qb_client);
