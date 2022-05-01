@@ -253,12 +253,12 @@ async fn run_once_inner(
     pool: &db::Pool,
 ) -> Result<Vec<db::Item>> {
     info!("Fetching feed {}", feed.name);
-
-    let mut added = vec![];
     let mut items = get_url(qb_client, &feed.name, &feed.url)
         .await
         .context("get torrents from url failed")?;
+    // 名称排序
     items.sort_unstable_by(|l, r| l.title.cmp(&r.title));
+    // 过滤规则
     let items = items.into_iter().filter(|item| {
         for filter in feed.filters.iter() {
             if !filter.is_match(&item.title) {
@@ -268,34 +268,40 @@ async fn run_once_inner(
         }
         true
     });
-
+    // 过滤已经添加的
+    let mut new = vec![];
     for item in items {
-        trace!("item {:?}", item);
         if db::Item::exists(&item.guid, pool).await? {
             debug!("item {} already exists, skip", item.title);
             continue;
         }
+        new.push(item);
+    }
+    // 添加
+    if new.is_empty() {
+        return Ok(vec![]);
+    }
+    info!("新种子：{:?}，添加到 QB", new);
+    qb_client
+        .add_torrent(request::AddTorrentRequest {
+            urls: new.iter().map(|i| i.enclosure.clone()).collect(),
+            torrents: vec![],
+            savepath: feed.savepath.clone(),
+            category: feed.category.clone(),
+            tags: feed.tags.clone(),
+            rootfolder: Some(feed.root_folder),
+            rename: None,
+            auto_torrent_management: Some(feed.auto_torrent_management),
+        })
+        .await
+        .context("add torrent failed")?;
+    info!("种子 {:?} 成功添加到 QB", new);
 
-        info!("新种子：{}，添加到 QB", item.title);
-        qb_client
-            .add_torrent(request::AddTorrentRequest {
-                urls: vec![item.enclosure.clone()],
-                torrents: vec![],
-                savepath: feed.savepath.clone(),
-                category: feed.category.clone(),
-                tags: feed.tags.clone(),
-                rootfolder: Some(feed.root_folder),
-                rename: None,
-                auto_torrent_management: Some(feed.auto_torrent_management),
-            })
-            .await
-            .context("add torrent failed")?;
-        info!("种子 {} 成功添加到 QB", item.title);
+    for item in new.iter() {
         item.insert(pool).await?;
-        added.push(item);
     }
 
-    Ok(added)
+    Ok(new)
 }
 
 impl TryFrom<rss::Item> for db::Item {
@@ -318,8 +324,10 @@ mod tests {
     #[test]
     fn parse_piratebay_url() {
         assert_eq!(
-            recognize_piratebay_url("https://thepiratebay/a b c"),
-            Some("a b c")
+            recognize_piratebay_url("https://thepiratebay/a b c")
+                .unwrap()
+                .unwrap(),
+            "a%20b%20c"
         );
     }
 }

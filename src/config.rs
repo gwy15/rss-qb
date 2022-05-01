@@ -49,7 +49,6 @@ fn default_interval() -> u64 {
     15 * 60
 }
 
-
 #[derive(Deserialize)]
 pub struct Email {
     pub sender: String,

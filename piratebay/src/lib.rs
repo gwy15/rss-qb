@@ -78,9 +78,18 @@ fn parse_html(s: &str) -> Result<Vec<Item>> {
         // magnet
         let magnet_elem = row
             .select(&MAGNET_SELECTOR)
-            .next()
+            .find(|i| {
+                i.value()
+                    .attr("title")
+                    .map(|title| title.starts_with("Download this torrent"))
+                    .unwrap_or_default()
+            })
             .context("Missing magnet")?;
-        let magnet = magnet_elem.value().attr("href").context("Missing magnet")?;
+        let magnet = magnet_elem
+            .value()
+            .attr("href")
+            .context("Missing magnet")?
+            .trim();
 
         // size
         let desc_elem = row.select(&INFO_SELECTOR).next().context("Missing info")?;
@@ -131,5 +140,8 @@ mod tests {
         let s = include_str!("../tests/search-result.html");
         let items = parse_html(s).unwrap();
         assert_eq!(items.len(), 28);
+        for item in items {
+            assert!(item.magnet.starts_with("magnet:"));
+        }
     }
 }
