@@ -7,9 +7,9 @@ pub struct Config {
     /// The path to the database file. Example: `/home/user/data.sqlite`
     pub db_uri: PathBuf,
 
-    /// global proxy
-    #[serde(deserialize_with = "deserialize_proxy")]
-    pub proxy: Option<reqwest::Proxy>,
+    /// https proxy
+    #[serde(default, deserialize_with = "deserialize_proxy")]
+    pub https_proxy: Option<reqwest::Proxy>,
 
     pub email: Option<Email>,
 
@@ -60,8 +60,8 @@ where
     let s: Option<String> = serde::Deserialize::deserialize(d)?;
     match s {
         Some(s) => {
-            let proxy =
-                reqwest::Proxy::all(&s).map_err(|e| serde::de::Error::custom(format!("{}", e)))?;
+            let proxy = reqwest::Proxy::https(&s)
+                .map_err(|e| serde::de::Error::custom(format!("{}", e)))?;
             Ok(Some(proxy))
         }
         None => Ok(None),
@@ -85,10 +85,12 @@ mod tests {
     fn test_deserialize_proxy() {
         #[derive(Debug, Deserialize)]
         struct H {
-            #[serde(deserialize_with = "deserialize_proxy")]
+            #[serde(default, deserialize_with = "deserialize_proxy")]
             h: Option<Proxy>,
         }
         let h: H = toml::from_str(r#"h = "socks5h://127.0.0.1:1080" "#).unwrap();
         assert!(h.h.is_some());
+        let h: H = toml::from_str(r#""#).unwrap();
+        assert!(h.h.is_none());
     }
 }
