@@ -3,7 +3,8 @@ name = "rss-qb"
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[workspace]
+members = ["piratebay"]
 
 [dependencies]
 anyhow = "1.0.57"
@@ -12,10 +13,16 @@ pretty_env_logger = "0.4.0"
 reqwest = { version = "0.11.10", features = ["rustls-tls", "cookies", "multipart"], default-features = false }
 rss = "2.0.1"
 serde = { version = "1.0.136", features = ["derive"] }
-tokio = { version = "1.18.0", features = ["rt", "macros", "rt-multi-thread"] }
+tokio = { version = "1.18.0", features = ["macros", "signal"] }
 toml = "0.5.9"
 futures = "0.3.21"
 notify = "4.0.17"
+url = "2.2.2"
+regex = "1.5.5"
+serde_regex = "1.1.0"
+
+[dependencies.piratebay]
+path = "./piratebay"
 
 [dependencies.lettre]
 version = "0.10.0-rc.6"

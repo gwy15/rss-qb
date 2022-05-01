@@ -40,11 +40,15 @@ pub struct Feed {
     /// Whether Automatic Torrent Management should be used
     #[serde(default = "bool::default")]
     pub auto_torrent_management: bool,
+    /// filter
+    #[serde(default, with = "serde_regex")]
+    pub filters: Vec<regex::Regex>,
 }
 
 fn default_interval() -> u64 {
     15 * 60
 }
+
 
 #[derive(Deserialize)]
 pub struct Email {

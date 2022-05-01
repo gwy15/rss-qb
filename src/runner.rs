@@ -2,7 +2,7 @@ use crate::{
     config::{Email, Feed},
     db, request, Config, QbClient,
 };
-use anyhow::{bail, Context, Result};
+use anyhow::{anyhow, bail, Context, Result};
 use notify::Watcher;
 use std::{
     path::{Path, PathBuf},
@@ -27,8 +27,8 @@ pub async fn run_watching(path: PathBuf) -> Result<()> {
                 debug!("event = {:?}", event);
                 stop_tx_clone.send(()).unwrap();
             }
-            Err(e) => {
-                log::error!("watch config file error: {:?}", e);
+            Err(_e) => {
+                info!("the watcher is dropped, exiting");
                 break;
             }
         }
@@ -36,9 +36,19 @@ pub async fn run_watching(path: PathBuf) -> Result<()> {
 
     loop {
         let config = load_config(&path).await?;
-        run_config(config, stop_tx.clone()).await?;
-        info!("config file changed, reloading");
+        tokio::select! {
+            r = run_config(config, stop_tx.clone()) => {
+                r?;
+                info!("config file changed, reloading");
+            }
+            _ = tokio::signal::ctrl_c() => {
+                info!("ctrl-c received, stopping");
+                stop_tx.send(()).ok();
+                break;
+            }
+        }
     }
+    Ok(())
 }
 
 /// 循环跑一个 config
@@ -102,18 +112,18 @@ async fn run_feed(
                     }
                     Err(e) => {
                         log::error!("receive stop sign error: {:?}", e);
-                        return Err(anyhow::anyhow!(e));
+                        return Err(anyhow!(e).context("receive stop sign error"));
                     }
                 }
             }
             _ = timer.tick() => {
                 match run_once(&qb_client, &feed, &email, &pool).await {
                     Ok(_) => {
-                        info!("Successfully downloaded {}", feed.name);
+                        info!("RSS {} 刷新完成", feed.name);
                         error_counter = 0;
                     }
                     Err(e) => {
-                        eprintln!("{:?}", e);
+                        error!("{:?}", e);
                         error_counter += 1;
                         if error_counter == 3 {
                             bail!("Too many errors");
@@ -190,6 +200,52 @@ async fn send(title: &str, body: &str, email: &Email) -> Result<()> {
     Ok(())
 }
 
+/// return query for piratebay url
+fn recognize_piratebay_url(url: &str) -> Result<Option<String>> {
+    let url_parsed = url::Url::parse(url).context("parse url failed")?;
+    let domain = url_parsed.domain().context("no domain found")?;
+    if domain == "piratebay" || domain == "thepiratebay" {
+        let path = url_parsed.path().trim_matches('/');
+        Ok(Some(path.to_string()))
+    } else {
+        Ok(None)
+    }
+}
+
+async fn get_url(client: &QbClient, name: &str, url: &str) -> Result<Vec<db::Item>> {
+    if let Some(query) = recognize_piratebay_url(url)? {
+        let search = piratebay::search(&client.inner, &query)
+            .await
+            .context("search piratebay failed")?;
+        let items = search
+            .into_iter()
+            .map(|item| db::Item {
+                guid: item.url.clone(),
+                title: item.title,
+                link: item.url,
+                enclosure: item.magnet,
+            })
+            .collect();
+        Ok(items)
+    } else {
+        // http
+        let r = client.inner.get(url).send().await?;
+        if !r.status().is_success() {
+            bail!("feed {} HTTP status {}", name, r.status());
+        }
+        let s = r.bytes().await.context("failed to fetch body")?;
+        let channel = rss::Channel::read_from(&s[..]).context("failed to parse as rss channel")?;
+        info!("feed {} (channel name {}) fetched", name, channel.title);
+
+        let mut items = vec![];
+        for item in channel.items.into_iter() {
+            let item: db::Item = item.try_into()?;
+            items.push(item);
+        }
+        Ok(items)
+    }
+}
+
 /// 跑一个 feed
 async fn run_once_inner(
     qb_client: &QbClient,
@@ -197,25 +253,30 @@ async fn run_once_inner(
     pool: &db::Pool,
 ) -> Result<Vec<db::Item>> {
     info!("Fetching feed {}", feed.name);
-    let r = qb_client.inner.get(&feed.url).send().await?;
-    if !r.status().is_success() {
-        bail!("feed {} HTTP status {}", feed.name, r.status());
-    }
-    let s = r.bytes().await.context("failed to fetch body")?;
-    let channel = rss::Channel::read_from(&s[..]).context("failed to parse as rss channel")?;
-    info!("feed {} channel named {} fetched", feed.name, channel.title);
-    let mut added = vec![];
-    for item in channel.items {
-        debug!("judging item {:?}", item.title);
-        let item: db::Item = item.try_into()?;
-        trace!("item {:?}", item);
 
+    let mut added = vec![];
+    let mut items = get_url(qb_client, &feed.name, &feed.url)
+        .await
+        .context("get torrents from url failed")?;
+    items.sort_unstable_by(|l, r| l.title.cmp(&r.title));
+    let items = items.into_iter().filter(|item| {
+        for filter in feed.filters.iter() {
+            if !filter.is_match(&item.title) {
+                debug!("item {} filtered out.", item.title);
+                return false;
+            }
+        }
+        true
+    });
+
+    for item in items {
+        trace!("item {:?}", item);
         if db::Item::exists(&item.guid, pool).await? {
-            debug!("item {} already exists", item.title);
+            debug!("item {} already exists, skip", item.title);
             continue;
         }
 
-        info!("item {} not found, adding", item.title);
+        info!("新种子：{}，添加到 QB", item.title);
         qb_client
             .add_torrent(request::AddTorrentRequest {
                 urls: vec![item.enclosure.clone()],
@@ -229,6 +290,7 @@ async fn run_once_inner(
             })
             .await
             .context("add torrent failed")?;
+        info!("种子 {} 成功添加到 QB", item.title);
         item.insert(pool).await?;
         added.push(item);
     }
@@ -247,5 +309,17 @@ impl TryFrom<rss::Item> for db::Item {
             link: value.link.unwrap_or_else(|| "unknown".to_string()),
             enclosure,
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn parse_piratebay_url() {
+        assert_eq!(
+            recognize_piratebay_url("https://thepiratebay/a b c"),
+            Some("a b c")
+        );
     }
 }
