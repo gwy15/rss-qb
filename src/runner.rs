@@ -1,4 +1,7 @@
-use crate::{config::Feed, db, request, Config, QbClient};
+use crate::{
+    config::{Email, Feed},
+    db, request, Config, QbClient,
+};
 use anyhow::{bail, Context, Result};
 use notify::Watcher;
 use std::{
@@ -38,7 +41,7 @@ pub async fn run_watching(path: PathBuf) -> Result<()> {
     }
 }
 
-/// block
+/// 循环跑一个 config
 async fn run_config(config: Config, stop: a_broadcast::Sender<()>) -> Result<()> {
     let db_url = format!("sqlite://{}", config.db_uri.display());
     let pool = db::Pool::connect(&db_url).await?;
@@ -52,11 +55,14 @@ async fn run_config(config: Config, stop: a_broadcast::Sender<()>) -> Result<()>
     .await?;
     let qb_client = Arc::new(qb_client);
 
+    let email = Arc::new(config.email);
+
     let mut fut = vec![];
     for feed in config.feed {
         fut.push(run_feed(
             qb_client.clone(),
             feed,
+            email.clone(),
             pool.clone(),
             stop.subscribe(),
         ));
@@ -75,9 +81,11 @@ async fn load_config(path: &Path) -> Result<Config> {
     Ok(config)
 }
 
+/// 循环跑一个 feed
 async fn run_feed(
     qb_client: Arc<QbClient>,
     feed: Feed,
+    email: Arc<Option<Email>>,
     pool: db::Pool,
     mut stop: a_broadcast::Receiver<()>,
 ) -> Result<()> {
@@ -99,7 +107,7 @@ async fn run_feed(
                 }
             }
             _ = timer.tick() => {
-                match run_once(&qb_client, &feed, &pool).await {
+                match run_once(&qb_client, &feed, &email, &pool).await {
                     Ok(_) => {
                         info!("Successfully downloaded {}", feed.name);
                         error_counter = 0;
@@ -117,7 +125,77 @@ async fn run_feed(
     }
 }
 
-async fn run_once(qb_client: &QbClient, feed: &Feed, pool: &db::Pool) -> Result<()> {
+/// 跑一个 feed 并发送结果
+async fn run_once(
+    qb_client: &QbClient,
+    feed: &Feed,
+    email: &Option<Email>,
+    pool: &db::Pool,
+) -> Result<()> {
+    match email {
+        None => {
+            run_once_inner(qb_client, feed, pool).await?;
+            debug!("no email configured.");
+            Ok(())
+        }
+        Some(email) => {
+            let ret = run_once_inner(qb_client, feed, pool).await;
+            let (title, body) = match &ret {
+                Ok(added) if !added.is_empty() => {
+                    let title = format!("RSS 订阅 {} 新增 {} 个", feed.name, added.len());
+                    let body = added
+                        .iter()
+                        .map(|item| format!("- {}", item.title))
+                        .collect::<Vec<_>>()
+                        .join("\n");
+                    (title, body)
+                }
+                Ok(_empty) => return Ok(()),
+                Err(e) => {
+                    let title = format!("刷新 RSS feed {} 发生错误", feed.name);
+                    let body = format!("{e:?}");
+                    (title, body)
+                }
+            };
+
+            send(&title, &body, email).await?;
+
+            match ret {
+                Ok(_) => Ok(()),
+                Err(e) => Err(e),
+            }
+        }
+    }
+}
+
+async fn send(title: &str, body: &str, email: &Email) -> Result<()> {
+    use lettre::{
+        message::Mailbox, transport::smtp::authentication::Credentials, AsyncSmtpTransport,
+        AsyncTransport, Message, Tokio1Executor,
+    };
+    debug!("sending email to {}", email.receiver);
+    let message = Message::builder()
+        .from(Mailbox::new(None, email.sender.parse()?))
+        .to(Mailbox::new(None, email.receiver.parse()?))
+        .subject(title)
+        .body(body.to_string())?;
+    let credentials = Credentials::new(email.sender.clone(), email.sender_pswd.clone());
+
+    let mailer = AsyncSmtpTransport::<Tokio1Executor>::relay(&email.smtp_host)?
+        .credentials(credentials)
+        .build();
+
+    let r = mailer.send(message).await?;
+    debug!("send email result: {:?}", r);
+    Ok(())
+}
+
+/// 跑一个 feed
+async fn run_once_inner(
+    qb_client: &QbClient,
+    feed: &Feed,
+    pool: &db::Pool,
+) -> Result<Vec<db::Item>> {
     info!("Fetching feed {}", feed.name);
     let r = qb_client.inner.get(&feed.url).send().await?;
     if !r.status().is_success() {
@@ -126,6 +204,7 @@ async fn run_once(qb_client: &QbClient, feed: &Feed, pool: &db::Pool) -> Result<
     let s = r.bytes().await.context("failed to fetch body")?;
     let channel = rss::Channel::read_from(&s[..]).context("failed to parse as rss channel")?;
     info!("feed {} channel named {} fetched", feed.name, channel.title);
+    let mut added = vec![];
     for item in channel.items {
         debug!("judging item {:?}", item.title);
         let item: db::Item = item.try_into()?;
@@ -151,9 +230,10 @@ async fn run_once(qb_client: &QbClient, feed: &Feed, pool: &db::Pool) -> Result<
             .await
             .context("add torrent failed")?;
         item.insert(pool).await?;
+        added.push(item);
     }
 
-    Ok(())
+    Ok(added)
 }
 
 impl TryFrom<rss::Item> for db::Item {

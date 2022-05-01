@@ -7,6 +7,8 @@ pub struct Config {
     /// The path to the database file. Example: `/home/user/data.sqlite`
     pub db_uri: PathBuf,
 
+    pub email: Option<Email>,
+
     pub qb: QbConfig,
     #[serde(default)]
     pub feed: Vec<Feed>,
@@ -42,4 +44,12 @@ pub struct Feed {
 
 fn default_interval() -> u64 {
     15 * 60
+}
+
+#[derive(Deserialize)]
+pub struct Email {
+    pub sender: String,
+    pub sender_pswd: String,
+    pub smtp_host: String,
+    pub receiver: String,
 }

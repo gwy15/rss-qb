@@ -17,7 +17,7 @@ impl Item {
         Ok(count > 0)
     }
 
-    pub async fn insert(self, pool: &Pool) -> Result<()> {
+    pub async fn insert(&self, pool: &Pool) -> Result<()> {
         sqlx::query!(
             r#"
             INSERT INTO items

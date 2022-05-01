@@ -17,6 +17,11 @@ toml = "0.5.9"
 futures = "0.3.21"
 notify = "4.0.17"
 
+[dependencies.lettre]
+version = "0.10.0-rc.6"
+default-features = false
+features = ["rustls-tls", "tokio1-rustls-tls", "builder", "smtp-transport"]
+
 [dependencies.sqlx]
 version = "0.5.13"
 features = ["sqlite", "migrate", "macros", "offline", "runtime-tokio-rustls"]

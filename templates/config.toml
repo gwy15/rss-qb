@@ -1,13 +1,25 @@
 db_uri = "data.sqlite"
 
+# 邮件通知设置
+[email]
+sender = "123456@qq.com"
+sender_pswd = "abcfasdfoer"
+smtp_host = "smtp.qq.com"
+receiver = "example@gmail.com"
+
+# qb 设置
 [qb]
 base_url = "http://127.0.0.1:8080"
 username = "admin"
 password = "adminadmin"
 
+# RSS 订阅
 [[feed]]
 name = "动漫花园 - 阿波连"
 url = "https://dmhy.anoneko.com/topics/rss/rss.xml?keyword=%E9%98%BF%E6%B3%A2%E8%BF%9E&sort_id=0&team_id=657&order=date-desc"
-savepath = "/downloads/anime/测不准的阿波连同学 (2022)"
+savepath = "/downloads/anime/测不准的阿波连同学 (2022)" # 保存的路径
 category = "BT"
-tags = ["动漫花园", "测不准的阿波连同学", "动画"]
+tags = ["动漫花园", "测不准的阿波连同学", "动画"] # qb 的标签
+# interval_s = 900 # 默认 15 分钟刷新一次
+# root_folder = false # 是否创建 root folder
+# auto_torrent_management = false # 是否使用 qb 的自动种子管理
