@@ -22,7 +22,6 @@ savepath = "/downloads/anime/测不准的阿波连同学 (2022)" # 保存的路�
 category = "BT"
 tags = ["动漫花园", "测不准的阿波连同学", "动画"] # qb 的标签
 # interval_s = 900 # 默认 15 分钟刷新一次
-# root_folder = false # 是否创建 root folder
 # auto_torrent_management = false # 是否使用 qb 的自动种子管理
 # filters = ["S01"]
 

@@ -282,7 +282,11 @@ async fn run_once_inner(
     if new.is_empty() {
         return Ok(vec![]);
     }
-    info!("新种子：{:?}，添加到 QB", new);
+    let new_names = new
+        .iter()
+        .map(|item| item.title.clone())
+        .collect::<Vec<_>>();
+    info!("新种子：{:?}，添加到 QB", new_names);
     qb_client
         .add_torrent(request::AddTorrentRequest {
             urls: new.iter().map(|i| i.enclosure.clone()).collect(),
@@ -290,13 +294,12 @@ async fn run_once_inner(
             savepath: feed.savepath.clone(),
             category: feed.category.clone(),
             tags: feed.tags.clone(),
-            rootfolder: Some(feed.root_folder),
             rename: None,
             auto_torrent_management: Some(feed.auto_torrent_management),
         })
         .await
         .context("add torrent failed")?;
-    info!("种子 {:?} 成功添加到 QB", new);
+    info!("种子 {:?} 成功添加到 QB", new_names);
 
     for item in new.iter() {
         item.insert(pool).await?;

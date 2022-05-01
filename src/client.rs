@@ -81,9 +81,6 @@ impl QbClient {
         if !req.tags.is_empty() {
             form = form.part("tags", Part::text(req.tags.join(",")));
         }
-        if let Some(rootfolder) = req.rootfolder {
-            form = form.part("rootfolder", Part::text(rootfolder.to_string()));
-        }
         if let Some(rename) = req.rename {
             form = form.part("rename", Part::text(rename));
         }

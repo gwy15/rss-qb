@@ -38,9 +38,6 @@ pub struct Feed {
     /// Tags for the torrent
     #[serde(default)]
     pub tags: Vec<String>,
-    /// Create the root folder. Possible values are true, false, unset (default)
-    #[serde(default = "bool::default")]
-    pub root_folder: bool,
     /// Whether Automatic Torrent Management should be used
     #[serde(default = "bool::default")]
     pub auto_torrent_management: bool,
@@ -52,7 +49,6 @@ pub struct Feed {
 fn default_interval() -> u64 {
     15 * 60
 }
-
 fn deserialize_proxy<'de, D>(d: D) -> Result<Option<reqwest::Proxy>, D::Error>
 where
     D: serde::Deserializer<'de>,
