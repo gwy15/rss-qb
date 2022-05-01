@@ -1,0 +1,31 @@
+{
+  "db": "SQLite",
+  "3a4ca705618009b3322d3b76988aecb044a97a7d13d0350bb4e7dbcfb9a804d2": {
+    "query": "\n            INSERT INTO items\n                (guid, title, link, enclosure)\n            VALUES\n                (?, ?, ?, ?);\n            ",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Right": 4
+      },
+      "nullable": []
+    }
+  },
+  "4330fd00f8283d1a9ed004890cc32fb74a89c7771c5cee209d988d6dd665d540": {
+    "query": "SELECT COUNT(*) FROM items WHERE guid = ?;",
+    "describe": {
+      "columns": [
+        {
+          "name": "COUNT(*)",
+          "ordinal": 0,
+          "type_info": "Int"
+        }
+      ],
+      "parameters": {
+        "Right": 1
+      },
+      "nullable": [
+        false
+      ]
+    }
+  }
+}
