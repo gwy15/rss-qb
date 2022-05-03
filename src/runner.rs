@@ -124,9 +124,15 @@ async fn run_feed(
                         error_counter = 0;
                     }
                     Err(e) => {
-                        error!("{:?}", e);
+                        error!("feed {} failed for the {} times: {:?}", feed.name, error_counter, e);
                         error_counter += 1;
                         if error_counter == 3 {
+                            error!("Too many errors! error_counter = {}", error_counter);
+                            if let Some(email) = &*email {
+                                let title = format!("RSS {} 刷新失败: {}", feed.name, e);
+                                let body = format!("错误信息：\n{:?}", e);
+                                send(&title, &body, email).await.ok();
+                            }
                             bail!("Too many errors");
                         }
                     }
@@ -151,7 +157,7 @@ async fn run_once(
         }
         Some(email) => {
             let ret = run_once_inner(qb_client, feed, pool).await;
-            let (title, body) = match &ret {
+            match ret {
                 Ok(added) if !added.is_empty() => {
                     let title = format!("RSS 订阅 {} 新增 {} 个", feed.name, added.len());
                     let body = added
@@ -159,21 +165,10 @@ async fn run_once(
                         .map(|item| format!("- {}", item.title))
                         .collect::<Vec<_>>()
                         .join("\n");
-                    (title, body)
+                    send(&title, &body, email).await?;
+                    Ok(())
                 }
-                Ok(_empty) => return Ok(()),
-                Err(e) => {
-                    let title = format!("刷新 RSS feed {} 发生错误", feed.name);
-                    let body = format!("{e:?}");
-                    (title, body)
-                }
-            };
-
-            send(&title, &body, email).await?;
-
-            match ret {
-                Ok(_) => Ok(()),
-                Err(e) => Err(e),
+                r => r.map(|_| ()),
             }
         }
     }
