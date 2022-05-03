@@ -221,7 +221,7 @@ async fn get_url(client: &QbClient, name: &str, url: &str) -> Result<Vec<db::Ite
         let items = search
             .into_iter()
             .map(|item| db::Item {
-                guid: item.url.clone(),
+                guid: the_pirate_bay_guid(&item),
                 title: item.title,
                 link: item.url,
                 enclosure: item.magnet,
@@ -245,6 +245,19 @@ async fn get_url(client: &QbClient, name: &str, url: &str) -> Result<Vec<db::Ite
         }
         Ok(items)
     }
+}
+
+/// replace the domain to thepiratebay
+fn the_pirate_bay_guid(item: &piratebay::Item) -> String {
+    let mut url_parsed = match url::Url::parse(&item.url) {
+        Ok(url) => url,
+        Err(e) => {
+            error!("failed to parse url: {:?}", e);
+            return item.url.to_string();
+        }
+    };
+    url_parsed.set_host(Some("thepiratebay")).ok();
+    url_parsed.to_string()
 }
 
 /// 跑一个 feed
@@ -332,6 +345,19 @@ mod tests {
                 .unwrap()
                 .unwrap(),
             "a%20b%20c"
+        );
+    }
+
+    #[test]
+    fn pirate_bay_guid() {
+        assert_eq!(
+            the_pirate_bay_guid(&piratebay::Item {
+                url: "https://thepiratebay0.org/torrent/123".to_string(),
+                title: "a b c".to_string(),
+                magnet: "magnet:?xt=".to_string(),
+                size: 0,
+            }),
+            "https://thepiratebay/torrent/123"
         );
     }
 }
