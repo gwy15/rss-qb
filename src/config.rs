@@ -25,22 +25,40 @@ pub struct QbConfig {
     pub password: String,
 }
 
+#[derive(Debug, Deserialize, Clone, Copy, PartialEq, Eq)]
+pub enum ContentLayout {
+    Original,
+    Subfolder,
+    NoSubFolder,
+}
+
 #[derive(Deserialize)]
 pub struct Feed {
     pub name: String,
+
     pub url: String,
+
     #[serde(default = "default_interval")]
     pub interval_s: u64,
+
     /// Download folder
     pub savepath: Option<String>,
+
+    /// content layout
+    #[serde(default)]
+    pub content_layout: Option<ContentLayout>,
+
     /// Category for the torrent
     pub category: Option<String>,
+
     /// Tags for the torrent
     #[serde(default)]
     pub tags: Vec<String>,
+
     /// Whether Automatic Torrent Management should be used
     #[serde(default = "bool::default")]
     pub auto_torrent_management: bool,
+
     /// filter
     #[serde(default, with = "serde_regex")]
     pub filters: Vec<regex::Regex>,
@@ -88,5 +106,12 @@ mod tests {
         assert!(h.h.is_some());
         let h: H = toml::from_str(r#""#).unwrap();
         assert!(h.h.is_none());
+    }
+
+    #[test]
+    fn parse_templates_config() {
+        let s = std::fs::read_to_string("./templates/config.toml").unwrap();
+        let config: Config = toml::from_str(&s).unwrap();
+        assert_eq!(config.feed.len(), 2);
     }
 }

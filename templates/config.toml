@@ -18,9 +18,9 @@ password = "adminadmin"
 [[feed]]
 name = "动漫花园 - 阿波连"
 url = "https://dmhy.anoneko.com/topics/rss/rss.xml?keyword=%E9%98%BF%E6%B3%A2%E8%BF%9E&sort_id=0&team_id=657&order=date-desc"
-savepath = "/downloads/anime/测不准的阿波连同学 (2022)" # 保存的路径
+savepath = "/downloads/anime/测不准的阿波连同学 (2022)"   # 保存的路径
 category = "BT"
-tags = ["动漫花园", "测不准的阿波连同学", "动画"] # qb 的标签
+tags = ["动漫花园", "测不准的阿波连同学", "动画"]    # qb 的标签
 # interval_s = 900 # 默认 15 分钟刷新一次
 # auto_torrent_management = false # 是否使用 qb 的自动种子管理
 # filters = ["S01"]
@@ -29,6 +29,7 @@ tags = ["动漫花园", "测不准的阿波连同学", "动画"] # qb 的标签
 name = "海盗湾 - Young Sheldon S05"
 url = "https://thepiratebay/Young Sheldon 1080p CAKES WEB H264" # 使用这样的域名可以在海盗湾上搜索
 savepath = "/downloads/show/小谢尔顿 (2017)/Season 5"
+content_layout = "NoSubFolder"
 category = "BT"
 tags = ["ThePirateBay", "小谢尔顿", "电视剧"]
-filters = ["S05E[123]", "CAKES$"] # 正则
+filters = ["S05E[123]", "CAKES$"]                               # 正则
