@@ -71,6 +71,10 @@ pub struct Feed {
     /// filter
     #[serde(default, with = "serde_regex")]
     pub filters: Vec<regex::Regex>,
+
+    /// not_filters
+    #[serde(default, with = "serde_regex")]
+    pub not_filters: Vec<regex::Regex>,
 }
 
 fn default_interval() -> u64 {

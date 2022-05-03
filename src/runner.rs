@@ -275,6 +275,12 @@ async fn run_once_inner(
                 return false;
             }
         }
+        for filter in feed.not_filters.iter() {
+            if filter.is_match(&item.title) {
+                debug!("item {} filtered out by not filters.", item.title);
+                return false;
+            }
+        }
         true
     });
     // 过滤已经添加的
