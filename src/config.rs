@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{fmt, path::PathBuf};
 
 use serde::Deserialize;
 
@@ -29,7 +29,16 @@ pub struct QbConfig {
 pub enum ContentLayout {
     Original,
     Subfolder,
-    NoSubFolder,
+    NoSubfolder,
+}
+impl fmt::Display for ContentLayout {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ContentLayout::Original => write!(f, "Original"),
+            ContentLayout::Subfolder => write!(f, "Subfolder"),
+            ContentLayout::NoSubfolder => write!(f, "NoSubfolder"),
+        }
+    }
 }
 
 #[derive(Deserialize)]

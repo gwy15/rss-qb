@@ -305,6 +305,7 @@ async fn run_once_inner(
             urls: new.iter().map(|i| i.enclosure.clone()).collect(),
             torrents: vec![],
             savepath: feed.savepath.clone(),
+            content_layout: feed.content_layout.map(|i| i.to_string()),
             category: feed.category.clone(),
             tags: feed.tags.clone(),
             rename: None,

@@ -75,6 +75,9 @@ impl QbClient {
         if let Some(savepath) = req.savepath {
             form = form.part("savepath", Part::text(savepath));
         }
+        if let Some(content_layout) = req.content_layout {
+            form = form.part("contentLayout", Part::text(content_layout));
+        }
         if let Some(category) = req.category {
             form = form.part("category", Part::text(category));
         }
