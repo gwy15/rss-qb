@@ -8,6 +8,8 @@ use std::{
     path::{Path, PathBuf},
     sync::{mpsc, Arc},
 };
+#[cfg(unix)]
+use tokio::signal::unix as signal;
 use tokio::sync::broadcast as a_broadcast;
 
 pub async fn run_watching(path: PathBuf) -> Result<()> {
@@ -37,17 +39,40 @@ pub async fn run_watching(path: PathBuf) -> Result<()> {
     loop {
         let config = load_config(&path).await?;
         tokio::select! {
+            _ = signal() => {
+                info!("received signal, exiting");
+                stop_tx.send(()).ok();
+                break;
+            }
             r = run_config(config, stop_tx.clone()) => {
                 r?;
                 info!("config file changed, reloading");
             }
-            _ = tokio::signal::ctrl_c() => {
-                info!("ctrl-c received, stopping");
-                stop_tx.send(()).ok();
-                break;
-            }
         }
     }
+    Ok(())
+}
+
+#[cfg(unix)]
+async fn signal() -> Result<()> {
+    let mut sig_term = signal::signal(signal::SignalKind::terminate())?;
+
+    tokio::select! {
+        _ = sig_term.recv() => {
+            info!("received signterm, exiting");
+            Ok(())
+        }
+        _ = tokio::signal::ctrl_c() => {
+            info!("ctrl-c received, stopping");
+            Ok(())
+        }
+    }
+}
+
+#[cfg(not(unix))]
+async fn signal() -> Result<()> {
+    tokio::signal::ctrl_c().await?;
+    info!("ctrl-c received, stopping");
     Ok(())
 }
 
