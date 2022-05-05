@@ -7,6 +7,8 @@ use std::{future::Future, sync::Arc};
 pub struct QbClient {
     pub inner: Client,
     base_url: Arc<str>,
+    username: String,
+    password: String,
 }
 
 impl QbClient {
@@ -28,18 +30,20 @@ impl QbClient {
         let this = Self {
             inner: client,
             base_url: base_url.into(),
+            username: username.to_string(),
+            password: password.to_string(),
         };
-        this.login(username, password).await?;
+        this.login().await?;
         info!("client logged in.");
         Ok(this)
     }
 
-    pub async fn login(&self, username: &str, password: &str) -> Result<()> {
+    pub async fn login(&self) -> Result<()> {
         let url = self.url("auth", "login");
         let resp = self
             .inner
             .post(&url)
-            .form(&[("username", username), ("password", password)])
+            .form(&[("username", &self.username), ("password", &self.password)])
             .send()
             .await?;
         if resp.status().is_success() {

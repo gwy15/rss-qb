@@ -301,6 +301,7 @@ async fn run_once_inner(
         .map(|item| item.title.clone())
         .collect::<Vec<_>>();
     info!("新种子：{:?}，添加到 QB", new_names);
+    qb_client.login().await?;
     qb_client
         .add_torrent(request::AddTorrentRequest {
             urls: new.iter().map(|i| i.enclosure.clone()).collect(),
