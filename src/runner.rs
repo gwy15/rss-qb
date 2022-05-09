@@ -314,7 +314,6 @@ async fn run_once_inner(
         true
     });
     // 过滤已经添加的
-    let mut tx = pool.begin().await?;
     let mut new = vec![];
     for item in items {
         if db::Item::exists(&item.guid, pool).await? {
@@ -343,12 +342,12 @@ async fn run_once_inner(
                 series_episode: episode,
                 item_guid: &item.guid,
             };
-            if ep.exists(&mut tx).await? {
+            if ep.exists(pool).await? {
                 debug!("item {} already exists in series, skip", item.title);
                 continue;
             }
             info!("series {} new episode {}:{}", feed.name, season, episode);
-            ep.insert(&mut tx).await?;
+            ep.insert(pool).await?;
         }
 
         new.push(item);
@@ -381,7 +380,6 @@ async fn run_once_inner(
     for item in new.iter() {
         item.insert(pool).await?;
     }
-    tx.commit().await?;
 
     Ok(new)
 }

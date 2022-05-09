@@ -1,7 +1,6 @@
 use anyhow::Result;
 
 pub type Pool = sqlx::SqlitePool;
-pub type Tx<'a> = sqlx::Transaction<'a, sqlx::Sqlite>;
 
 #[derive(Debug)]
 pub struct Item {
@@ -45,7 +44,7 @@ pub struct SeriesEpisode<'a> {
 }
 
 impl<'a> SeriesEpisode<'a> {
-    pub async fn exists<'x, 't>(&self, tx: &'t mut Tx<'x>) -> Result<bool> {
+    pub async fn exists(&self, pool: &Pool) -> Result<bool> {
         let stmt = sqlx::query_scalar!(
             r#"
                 SELECT COUNT(*)
@@ -59,11 +58,11 @@ impl<'a> SeriesEpisode<'a> {
             self.series_season,
             self.series_episode
         );
-        let count: i32 = stmt.fetch_one(tx).await?;
+        let count: i32 = stmt.fetch_one(pool).await?;
         Ok(count > 0)
     }
 
-    pub async fn insert<'x, 't>(&self, tx: &'t mut Tx<'x>) -> Result<()> {
+    pub async fn insert(&self, pool: &Pool) -> Result<()> {
         sqlx::query!(
             r#"
             INSERT INTO `series`
@@ -76,7 +75,7 @@ impl<'a> SeriesEpisode<'a> {
             self.series_episode,
             self.item_guid
         )
-        .execute(tx)
+        .execute(pool)
         .await?;
         Ok(())
     }
