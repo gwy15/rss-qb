@@ -68,13 +68,17 @@ pub struct Feed {
     #[serde(default = "bool::default")]
     pub auto_torrent_management: bool,
 
-    /// filter
+    /// filter，要包含的正则
     #[serde(default, with = "serde_regex")]
     pub filters: Vec<regex::Regex>,
 
-    /// not_filters
+    /// not_filters，排除的正则
     #[serde(default, with = "serde_regex")]
     pub not_filters: Vec<regex::Regex>,
+
+    /// series name
+    #[serde(default, with = "serde_regex")]
+    pub series_extractor: Option<regex::Regex>,
 }
 
 fn default_interval() -> u64 {

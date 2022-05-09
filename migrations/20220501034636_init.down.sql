@@ -1,1 +1,1 @@
-DROP TABLE `torrents`;
+DROP TABLE `items`;

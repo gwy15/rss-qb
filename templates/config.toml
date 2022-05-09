@@ -34,3 +34,4 @@ category = "BT"
 tags = ["ThePirateBay", "小谢尔顿", "电视剧"]
 filters = ["S05E[123]", "CAKES$"]                               # 正则
 not_filters = ["REPACK"]
+series_extractor = "S05E(?P<ep>\\d{2})"

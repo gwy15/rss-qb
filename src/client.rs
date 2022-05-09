@@ -23,6 +23,12 @@ impl QbClient {
         proxy: Option<Proxy>,
     ) -> Result<Self> {
         let mut client_builder = reqwest::ClientBuilder::new().cookie_store(true);
+        let mut headers = reqwest::header::HeaderMap::new();
+        headers.insert(
+            "Cache-Control",
+            reqwest::header::HeaderValue::from_static("no-cache"),
+        );
+        client_builder = client_builder.default_headers(headers);
         if let Some(proxy) = proxy {
             client_builder = client_builder.proxy(proxy);
         }

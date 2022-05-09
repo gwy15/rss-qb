@@ -7,7 +7,7 @@ async fn main() -> Result<()> {
     if std::env::var("RUST_LOG").is_err() {
         std::env::set_var(
             "RUST_LOG",
-            "info,rustls=warn,reqwest=warn,sqlx=warn,cookie_store=info,html5ever=info,selectors=info",
+            "debug,rustls=warn,reqwest=warn,sqlx=warn,cookie_store=info,html5ever=info,selectors=info",
         );
     }
     pretty_env_logger::init_timed();

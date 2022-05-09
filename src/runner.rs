@@ -256,7 +256,12 @@ async fn get_url(client: &QbClient, name: &str, url: &str) -> Result<Vec<db::Ite
         }
         let s = r.bytes().await.context("failed to fetch body")?;
         let channel = rss::Channel::read_from(&s[..]).context("failed to parse as rss channel")?;
-        info!("feed {} (channel name {}) fetched", name, channel.title);
+        info!(
+            "feed {} (channel name {}) fetched {} items",
+            name,
+            channel.title,
+            channel.items.len()
+        );
 
         let mut items = vec![];
         for item in channel.items.into_iter() {
@@ -287,11 +292,11 @@ async fn run_once_inner(
     pool: &db::Pool,
 ) -> Result<Vec<db::Item>> {
     info!("Fetching feed {}", feed.name);
-    let mut items = get_url(qb_client, &feed.name, &feed.url)
+    let items = get_url(qb_client, &feed.name, &feed.url)
         .await
         .context("get torrents from url failed")?;
     // 名称排序
-    items.sort_unstable_by(|l, r| l.title.cmp(&r.title));
+    // items.sort_unstable_by(|l, r| l.title.cmp(&r.title));
     // 过滤规则
     let items = items.into_iter().filter(|item| {
         for filter in feed.filters.iter() {
@@ -309,12 +314,43 @@ async fn run_once_inner(
         true
     });
     // 过滤已经添加的
+    let mut tx = pool.begin().await?;
     let mut new = vec![];
     for item in items {
         if db::Item::exists(&item.guid, pool).await? {
             debug!("item {} already exists, skip", item.title);
             continue;
         }
+        // 按照剧集模式过滤
+        if let Some(extractor) = &feed.series_extractor {
+            let (season, episode) = match item.extract_series(extractor) {
+                Some((season, episode)) => {
+                    debug!(
+                        "treating item {} as series {}:{}",
+                        item.title, season, episode
+                    );
+                    (season, episode)
+                }
+                None => {
+                    debug!("no series info extracted from {}", item.title);
+                    continue;
+                }
+            };
+
+            let ep = db::SeriesEpisode {
+                series_name: &feed.name,
+                series_season: season,
+                series_episode: episode,
+                item_guid: &item.guid,
+            };
+            if ep.exists(&mut tx).await? {
+                debug!("item {} already exists in series, skip", item.title);
+                continue;
+            }
+            info!("series {} new episode {}:{}", feed.name, season, episode);
+            ep.insert(&mut tx).await?;
+        }
+
         new.push(item);
     }
     // 添加
@@ -345,6 +381,7 @@ async fn run_once_inner(
     for item in new.iter() {
         item.insert(pool).await?;
     }
+    tx.commit().await?;
 
     Ok(new)
 }
