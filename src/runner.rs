@@ -295,10 +295,8 @@ async fn run_once_inner(
     let items = get_url(qb_client, &feed.name, &feed.url)
         .await
         .context("get torrents from url failed")?;
-    // 名称排序
-    // items.sort_unstable_by(|l, r| l.title.cmp(&r.title));
     // 过滤规则
-    let items = items.into_iter().filter(|item| {
+    let filtered_items = items.into_iter().filter(|item| {
         for filter in feed.filters.iter() {
             if !filter.is_match(&item.title) {
                 debug!("item {} filtered out.", item.title);
@@ -313,11 +311,12 @@ async fn run_once_inner(
         }
         true
     });
-    // 过滤已经添加的
-    let mut new = vec![];
-    for item in items {
+    // 过滤已经添加的，从这里开始有 DB 操作
+    let mut tx = db::EpTransaction::new(pool.clone());
+    let mut to_add_items = vec![];
+    for item in filtered_items {
         if db::Item::exists(&item.guid, pool).await? {
-            debug!("item {} already exists, skip", item.title);
+            debug!("item {} already exists in DB, skip", item.title);
             continue;
         }
         // 按照剧集模式过滤
@@ -337,26 +336,26 @@ async fn run_once_inner(
             };
 
             let ep = db::SeriesEpisode {
-                series_name: &feed.name,
-                series_season: season,
-                series_episode: episode,
-                item_guid: &item.guid,
+                series_name: feed.name.to_string(),
+                series_season: season.to_string(),
+                series_episode: episode.to_string(),
+                item_guid: item.guid.to_string(),
             };
-            if ep.exists(pool).await? {
+            if ep.exists(&tx).await? {
                 debug!("item {} already exists in series, skip", item.title);
                 continue;
             }
             info!("series {} new episode {}:{}", feed.name, season, episode);
-            ep.insert(pool).await?;
+            ep.insert(&mut tx).await?;
         }
 
-        new.push(item);
+        to_add_items.push(item);
     }
     // 添加
-    if new.is_empty() {
+    if to_add_items.is_empty() {
         return Ok(vec![]);
     }
-    let new_names = new
+    let new_names = to_add_items
         .iter()
         .map(|item| item.title.clone())
         .collect::<Vec<_>>();
@@ -364,7 +363,7 @@ async fn run_once_inner(
     qb_client.login().await?;
     qb_client
         .add_torrent(request::AddTorrentRequest {
-            urls: new.iter().map(|i| i.enclosure.clone()).collect(),
+            urls: to_add_items.iter().map(|i| i.enclosure.clone()).collect(),
             torrents: vec![],
             savepath: feed.savepath.clone(),
             content_layout: feed.content_layout.map(|i| i.to_string()),
@@ -377,11 +376,12 @@ async fn run_once_inner(
         .context("add torrent failed")?;
     info!("种子 {:?} 成功添加到 QB", new_names);
 
-    for item in new.iter() {
+    for item in to_add_items.iter() {
         item.insert(pool).await?;
     }
+    tx.commit();
 
-    Ok(new)
+    Ok(to_add_items)
 }
 
 impl TryFrom<rss::Item> for db::Item {
