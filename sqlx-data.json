@@ -55,5 +55,15 @@
         false
       ]
     }
+  },
+  "7de256f1769079ac9e126630d1082597a548367d8044adc3a9410011d8898388": {
+    "query": "\n                DELETE FROM `series`\n                WHERE\n                    `item_guid` = ?\n                ;",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Right": 1
+      },
+      "nullable": []
+    }
   }
 }
