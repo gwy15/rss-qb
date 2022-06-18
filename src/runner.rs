@@ -251,8 +251,11 @@ async fn get_url(client: &QbClient, name: &str, url: &str) -> Result<Vec<db::Ite
     } else {
         // http
         let r = client.inner.get(url).send().await?;
-        if !r.status().is_success() {
-            bail!("feed {} HTTP status {}", name, r.status());
+        let status = r.status();
+        if !status.is_success() {
+            debug!("feed={}, get url {} failed: {:?}", name, url, status);
+            debug!("feed={}, url={}, text: {:?}", name, url, r.text().await.ok());
+            bail!("feed '{}' HTTP status is '{}'", name, status);
         }
         let s = r.bytes().await.context("failed to fetch body")?;
         let channel = rss::Channel::read_from(&s[..]).context("failed to parse as rss channel")?;
