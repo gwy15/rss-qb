@@ -6,8 +6,8 @@ use scraper::{Html, Selector};
 extern crate log;
 
 const CANDIDATE_DOMAINS: &[&str] = &[
-    "thepiratebay0.org",
     "thepiratebay10.org",
+    "thepiratebay0.org",
     "pirateproxy.live",
     "thehiddenbay.com",
 ];
@@ -51,6 +51,7 @@ pub async fn search_with_domain(client: &Client, query: &str, domain: &str) -> R
     let query = query.replace(' ', "%20");
     let url = format!("https://{domain}/search/{query}/1/99/200");
     let response = client.get(&url).send().await?;
+    debug!("got response, status = {}", response.status());
     if !response.status().is_success() {
         bail!("search returned status code {}", response.status());
     }

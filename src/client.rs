@@ -22,7 +22,9 @@ impl QbClient {
         password: &str,
         proxy: Option<Proxy>,
     ) -> Result<Self> {
-        let mut client_builder = reqwest::ClientBuilder::new().cookie_store(true);
+        let mut client_builder = reqwest::ClientBuilder::new()
+            .timeout(std::time::Duration::from_secs(10))
+            .cookie_store(true);
         let mut headers = reqwest::header::HeaderMap::new();
         headers.insert(
             "Cache-Control",
