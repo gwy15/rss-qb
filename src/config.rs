@@ -11,11 +11,19 @@ pub struct Config {
     #[serde(default, deserialize_with = "deserialize_proxy")]
     pub https_proxy: Option<reqwest::Proxy>,
 
+    /// request timeout
+    #[serde(default = "default_timeout")]
+    pub timeout_s: u64,
+
     pub email: Option<Email>,
 
     pub qb: QbConfig,
     #[serde(default)]
     pub feed: Vec<Feed>,
+}
+
+fn default_timeout() -> u64 {
+    10
 }
 
 #[derive(Deserialize)]

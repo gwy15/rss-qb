@@ -1,11 +1,11 @@
 use super::request;
 use anyhow::{bail, Result};
-use reqwest::{multipart, Client, Proxy};
+use reqwest::{multipart, Client};
 use std::{future::Future, sync::Arc};
 
 /// 不实现 Clone，因为需要在 Drop 的时候登出
 pub struct QbClient {
-    pub inner: Client,
+    inner: Client,
     base_url: Arc<str>,
     username: String,
     password: String,
@@ -20,7 +20,6 @@ impl QbClient {
         base_url: impl Into<Arc<str>>,
         username: &str,
         password: &str,
-        proxy: Option<Proxy>,
     ) -> Result<Self> {
         let mut client_builder = reqwest::ClientBuilder::new()
             .timeout(std::time::Duration::from_secs(10))
@@ -31,9 +30,6 @@ impl QbClient {
             reqwest::header::HeaderValue::from_static("no-cache"),
         );
         client_builder = client_builder.default_headers(headers);
-        if let Some(proxy) = proxy {
-            client_builder = client_builder.proxy(proxy);
-        }
         let client = client_builder.build()?;
         let this = Self {
             inner: client,
