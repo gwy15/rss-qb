@@ -86,10 +86,18 @@ async fn run_config(config: Config, stop: a_broadcast::Sender<()>) -> Result<()>
         config.qb.base_url.clone(),
         &config.qb.username,
         &config.qb.password,
-        config.https_proxy,
     )
     .await?;
     let qb_client = Arc::new(qb_client);
+
+    let mut request_client_builder = reqwest::ClientBuilder::new();
+    request_client_builder =
+        request_client_builder.timeout(std::time::Duration::from_secs(config.timeout_s));
+    if let Some(proxy) = config.https_proxy {
+        request_client_builder = request_client_builder.proxy(proxy);
+    }
+    let request_client = request_client_builder.build()?;
+    let request_client = Arc::new(request_client);
 
     let email = Arc::new(config.email);
 
@@ -97,6 +105,7 @@ async fn run_config(config: Config, stop: a_broadcast::Sender<()>) -> Result<()>
     for feed in config.feed {
         fut.push(run_feed(
             qb_client.clone(),
+            request_client.clone(),
             feed,
             email.clone(),
             pool.clone(),
@@ -120,6 +129,7 @@ async fn load_config(path: &Path) -> Result<Config> {
 /// 循环跑一个 feed
 async fn run_feed(
     qb_client: Arc<QbClient>,
+    request_client: Arc<reqwest::Client>,
     feed: Feed,
     email: Arc<Option<Email>>,
     pool: db::Pool,
@@ -143,7 +153,7 @@ async fn run_feed(
                 }
             }
             _ = timer.tick() => {
-                match run_once(&qb_client, &feed, &email, &pool).await {
+                match run_once(&qb_client, &request_client, &feed, &email, &pool).await {
                     Ok(_) => {
                         info!("RSS {} 刷新完成", feed.name);
                         error_counter = 0;
@@ -170,18 +180,19 @@ async fn run_feed(
 /// 跑一个 feed 并发送结果
 async fn run_once(
     qb_client: &QbClient,
+    request_client: &reqwest::Client,
     feed: &Feed,
     email: &Option<Email>,
     pool: &db::Pool,
 ) -> Result<()> {
     match email {
         None => {
-            run_once_inner(qb_client, feed, pool).await?;
+            run_once_inner(qb_client, request_client, feed, pool).await?;
             debug!("no email configured.");
             Ok(())
         }
         Some(email) => {
-            let ret = run_once_inner(qb_client, feed, pool).await;
+            let ret = run_once_inner(qb_client, request_client, feed, pool).await;
             match ret {
                 Ok(added) if !added.is_empty() => {
                     let title = format!("RSS 订阅 {} 新增 {} 个", feed.name, added.len());
@@ -233,9 +244,9 @@ fn recognize_piratebay_url(url: &str) -> Result<Option<String>> {
     }
 }
 
-async fn get_url(client: &QbClient, name: &str, url: &str) -> Result<Vec<db::Item>> {
+async fn get_url(client: &reqwest::Client, name: &str, url: &str) -> Result<Vec<db::Item>> {
     if let Some(query) = recognize_piratebay_url(url)? {
-        let search = piratebay::search(&client.inner, &query)
+        let search = piratebay::search(client, &query)
             .await
             .context("search piratebay failed")?;
         let items = search
@@ -250,7 +261,7 @@ async fn get_url(client: &QbClient, name: &str, url: &str) -> Result<Vec<db::Ite
         Ok(items)
     } else {
         // http
-        let r = client.inner.get(url).send().await?;
+        let r = client.get(url).send().await?;
         let status = r.status();
         if !status.is_success() {
             debug!("feed={}, get url {} failed: {:?}", name, url, status);
@@ -296,11 +307,12 @@ fn the_pirate_bay_guid(item: &piratebay::Item) -> String {
 /// 跑一个 feed
 async fn run_once_inner(
     qb_client: &QbClient,
+    request_client: &reqwest::Client,
     feed: &Feed,
     pool: &db::Pool,
 ) -> Result<Vec<db::Item>> {
     info!("Fetching feed {}", feed.name);
-    let items = get_url(qb_client, &feed.name, &feed.url)
+    let items = get_url(request_client, &feed.name, &feed.url)
         .await
         .context("get torrents from url failed")?;
     // 过滤规则
