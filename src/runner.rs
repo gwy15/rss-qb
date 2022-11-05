@@ -90,10 +90,10 @@ async fn run_config(config: Config, stop: a_broadcast::Sender<()>) -> Result<()>
     .await?;
     let qb_client = Arc::new(qb_client);
 
-    let mut request_client_builder = reqwest::ClientBuilder::new();
-    request_client_builder =
-        request_client_builder.timeout(std::time::Duration::from_secs(config.timeout_s));
+    let mut request_client_builder =
+        reqwest::ClientBuilder::new().timeout(std::time::Duration::from_secs(config.timeout_s));
     if let Some(proxy) = config.https_proxy {
+        debug!("setting request client proxy to {:?}", proxy);
         request_client_builder = request_client_builder.proxy(proxy);
     }
     let request_client = request_client_builder.build()?;
@@ -261,7 +261,11 @@ async fn get_url(client: &reqwest::Client, name: &str, url: &str) -> Result<Vec<
         Ok(items)
     } else {
         // http
-        let r = client.get(url).send().await?;
+        let r = client
+            .get(url)
+            .send()
+            .await
+            .with_context(|| format!("request {name} failed"))?;
         let status = r.status();
         if !status.is_success() {
             debug!("feed={}, get url {} failed: {:?}", name, url, status);
