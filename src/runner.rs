@@ -246,7 +246,7 @@ fn recognize_piratebay_url(url: &str) -> Result<Option<String>> {
 
 async fn get_url(client: &reqwest::Client, name: &str, url: &str) -> Result<Vec<db::Item>> {
     if let Some(query) = recognize_piratebay_url(url)? {
-        let search = piratebay::search(&client, &query)
+        let search = piratebay::search(client, &query)
             .await
             .context("search piratebay failed")?;
         let items = search
