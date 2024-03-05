@@ -59,7 +59,7 @@ impl QbClient {
 
     fn logout(&self) -> impl Future<Output = Result<()>> + 'static {
         let url = self.url("auth", "logout");
-        let fut = self.inner.post(&url).send();
+        let fut = self.inner.post(url).send();
         async move {
             let resp = fut.await?;
             if resp.status().is_success() {
