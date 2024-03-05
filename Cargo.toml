@@ -13,8 +13,8 @@ pretty_env_logger = "0.4.0"
 reqwest = { version = "0.11.10", features = ["rustls-tls", "cookies", "multipart", "socks"], default-features = false }
 rss = "2.0.1"
 serde = { version = "1.0.136", features = ["derive"] }
-tokio = { version = "1.18.0", features = ["macros", "signal"] }
-toml = "0.5.9"
+tokio = { version = "1.18.0", features = ["macros", "signal", "rt-multi-thread"] }
+toml = "0.8.10"
 futures = "0.3.21"
 notify = "4.0.17"
 url = "2.2.2"
@@ -30,6 +30,6 @@ default-features = false
 features = ["rustls-tls", "tokio1-rustls-tls", "builder", "smtp-transport"]
 
 [dependencies.sqlx]
-version = "0.5.13"
-features = ["sqlite", "migrate", "macros", "offline", "runtime-tokio-rustls"]
+version = "0.7"
+features = ["sqlite", "migrate", "macros", "runtime-tokio-rustls"]
 default-features = false

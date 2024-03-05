@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            INSERT INTO items\n                (guid, title, link, enclosure)\n            VALUES\n                (?, ?, ?, ?);\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "3a4ca705618009b3322d3b76988aecb044a97a7d13d0350bb4e7dbcfb9a804d2"
+}

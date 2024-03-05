@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                SELECT COUNT(*)\n                FROM `series`\n                WHERE\n                    `series_name` = ?\n                    AND series_season = ? \n                    AND series_episode = ?\n                ;",
+  "describe": {
+    "columns": [
+      {
+        "name": "COUNT(*)",
+        "ordinal": 0,
+        "type_info": "Int"
+      }
+    ],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "03e602db4a61dfa2929f1eeb327cbbafd4a0af8513b0c68c86102c69deebd79c"
+}
