@@ -99,8 +99,8 @@ where
     let s: Option<String> = serde::Deserialize::deserialize(d)?;
     match s {
         Some(s) => {
-            let proxy = reqwest::Proxy::https(s)
-                .map_err(|e| serde::de::Error::custom(format!("{}", e)))?;
+            let proxy =
+                reqwest::Proxy::https(s).map_err(|e| serde::de::Error::custom(format!("{}", e)))?;
             Ok(Some(proxy))
         }
         None => Ok(None),
