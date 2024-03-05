@@ -10,3 +10,5 @@ pub mod series;
 
 pub use client::QbClient;
 pub use config::Config;
+
+pub mod gpt;

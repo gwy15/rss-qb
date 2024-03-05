@@ -17,6 +17,8 @@ pub struct Config {
 
     pub email: Option<Email>,
 
+    pub gpt: GptConfig,
+
     pub qb: QbConfig,
     #[serde(default)]
     pub feed: Vec<Feed>,
@@ -49,18 +51,52 @@ impl fmt::Display for ContentLayout {
     }
 }
 
-#[derive(Deserialize)]
-pub struct Feed {
-    pub name: String,
+#[derive(Deserialize, Clone)]
+#[serde(rename_all = "snake_case", tag = "type")]
+pub enum Feed {
+    Rss(RssFeed),
+}
+impl Feed {
+    pub fn base(&self) -> &FeedBase {
+        match self {
+            Self::Rss(rss) => &rss.base,
+        }
+    }
+    pub fn name(&self) -> &str {
+        &self.base().name
+    }
+}
 
-    pub url: String,
+#[derive(Deserialize, Clone)]
+pub struct RssFeed {
+    pub site: RssSite,
+    pub search: String,
+    #[serde(flatten)]
+    pub base: FeedBase,
+}
+impl RssFeed {
+    pub fn name(&self) -> &str {
+        &self.base.name
+    }
+}
+
+#[derive(Debug, Deserialize, Clone)]
+#[serde(rename_all = "snake_case")]
+pub enum RssSite {
+    #[serde(alias = "动漫猫")]
+    Comicat,
+    #[serde(alias = "动漫花园")]
+    Dmhy,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct FeedBase {
+    pub name: String,
 
     #[serde(default = "default_interval")]
     pub interval_s: u64,
-
     /// Download folder
     pub savepath: Option<String>,
-
     /// content layout
     #[serde(default)]
     pub content_layout: Option<ContentLayout>,
@@ -83,10 +119,23 @@ pub struct Feed {
     /// not_filters，排除的正则
     #[serde(default, with = "serde_regex")]
     pub not_filters: Vec<regex::Regex>,
-
-    /// series name
-    #[serde(default, with = "serde_regex")]
-    pub series_extractor: Option<regex::Regex>,
+}
+impl FeedBase {
+    pub fn filter(&self, item: &crate::db::Item) -> bool {
+        for filter in self.filters.iter() {
+            if !filter.is_match(&item.title) {
+                debug!("item {} filtered out.", item.title);
+                return false;
+            }
+        }
+        for filter in self.not_filters.iter() {
+            if filter.is_match(&item.title) {
+                debug!("item {} filtered out by not filters.", item.title);
+                return false;
+            }
+        }
+        true
+    }
 }
 
 fn default_interval() -> u64 {
@@ -113,6 +162,25 @@ pub struct Email {
     pub sender_pswd: String,
     pub smtp_host: String,
     pub receiver: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct GptConfig {
+    pub url: String,
+    pub model: String,
+    pub token: String,
+    pub retry: u8,
+    pub better_model: String,
+    pub better_since: u8,
+}
+impl GptConfig {
+    pub fn model(&self, time: u8) -> &str {
+        if time >= self.better_since {
+            &self.better_model
+        } else {
+            &self.model
+        }
+    }
 }
 
 #[cfg(test)]
