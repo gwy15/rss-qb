@@ -136,11 +136,11 @@ mod tests {
     #[test]
     fn parse() {
         let s = r#"[
-            { "type": "show", "fansub": "ANi", "show": "秒殺外掛太強了，異世界的傢伙們根本就不是對手。", "season": "1", "episode": "8", "resolution": "1080p", "language": "简繁中文" },
-            { "type": "show", "fansub": "LoliHouse", "show": "秒杀外挂太强了，异世界的家伙们根本就不是对手。", "season": "1", "episode": "7", "resolution": "1080p", "language": "简繁中文" },
-            { "type": "show", "fansub": "ANi", "show": "秒殺外掛太強了，異世界的傢伙們根本就不是對手。", "season": "1", "episode": "7", "resolution": "1080p", "language": "简繁中文" },
-            { "type": "show", "fansub": "LoliHouse", "show": "秒杀外挂太强了，异世界的家伙们根本就不是对手。", "season": "1", "episode": "6", "resolution": "1080p", "language": "简繁中文" },
-            { "type": "show", "fansub": "ANi", "show": "秒殺外掛太強了，異世界的傢伙們根本就不是對手。", "season": "1", "episode": "6", "resolution": "1080p", "language": "简繁中文" }
+            { "type": "show", "fansub": "ANi", "show": "秒殺外掛太強了，異世界的傢伙們根本就不是對手。", "season": 1, "episode": 8, "resolution": "1080p", "language": "简繁中文" },
+            { "type": "show", "fansub": "LoliHouse", "show": "秒杀外挂太强了，异世界的家伙们根本就不是对手。", "season": 1, "episode": 7, "resolution": "1080p", "language": "简繁中文" },
+            { "type": "show", "fansub": "ANi", "show": "秒殺外掛太強了，異世界的傢伙們根本就不是對手。", "season": 1, "episode": 7, "resolution": "1080p", "language": "简繁中文" },
+            { "type": "show", "fansub": "LoliHouse", "show": "秒杀外挂太强了，异世界的家伙们根本就不是对手。", "season": 1, "episode": 6, "resolution": "1080p", "language": "简繁中文" },
+            { "type": "show", "fansub": "ANi", "show": "秒殺外掛太強了，異世界的傢伙們根本就不是對手。", "season": 1, "episode": 6, "resolution": "1080p", "language": "简繁中文" }
         ]"#;
         let _ = serde_json::from_str::<Vec<Recognized>>(s).unwrap();
     }
