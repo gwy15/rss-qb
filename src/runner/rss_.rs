@@ -17,7 +17,7 @@ impl RssFeed {
     ) -> Result<Vec<db::Item>> {
         info!("Fetching feed {}", self.name());
         let items = self
-            .get_items(&request_client)
+            .get_items(request_client)
             .await
             .context("get torrents from url failed")?;
 

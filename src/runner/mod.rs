@@ -81,7 +81,7 @@ async fn signal() -> Result<()> {
 /// 循环跑一个 config
 async fn run_config(config_path: &Path) -> Result<()> {
     info!("running on config {}", config_path.display());
-    let config = load_config(&config_path).await?;
+    let config = load_config(config_path).await?;
     let config = Arc::new(config);
     let db_url = format!("sqlite://{}", config.db_uri.display());
     let pool = db::Pool::connect(&db_url).await?;
