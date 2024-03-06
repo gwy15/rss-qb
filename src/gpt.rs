@@ -23,12 +23,14 @@ pub enum Recognized {
 pub struct ShowInfo {
     pub fansub: String,
     pub show: String,
-    pub season: String,
-    pub episode: String,
+    pub season: i64,
+    pub episode: i64,
     pub resolution: String,
     pub language: String,
     #[serde(skip_deserializing)]
     pub year: i64,
+    #[serde(skip_deserializing)]
+    pub tmdb_id: i64,
 }
 
 pub async fn get_episode_info(titles: &[String], config: &GptConfig) -> Result<Vec<Recognized>> {

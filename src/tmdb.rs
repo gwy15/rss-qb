@@ -43,7 +43,7 @@ async fn search_tmdb(title: &str, client: &tmdb_api::Client) -> Result<Option<db
     let cmd = tmdb_api::tvshow::search::TVShowSearch::new(title.to_string())
         .with_language(Some("zh-CN".to_string()))
         .with_include_adult(true);
-    let result = cmd.execute(&client).await;
+    let result = cmd.execute(client).await;
     let mut r = match result {
         Ok(r) => r,
         Err(e) => anyhow::bail!("search tv show failed: {:?}", e),
@@ -55,5 +55,6 @@ async fn search_tmdb(title: &str, client: &tmdb_api::Client) -> Result<Option<db
     Ok(Some(db::TmdbShow {
         tmdb_name: result.inner.name,
         year: result.inner.first_air_date.unwrap_or_default().year() as i64,
+        tmdb_id: result.inner.id as i64,
     }))
 }

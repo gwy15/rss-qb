@@ -57,7 +57,7 @@ impl QbClient {
         }
     }
 
-    fn logout(&self) -> impl Future<Output = Result<()>> + 'static {
+    pub fn logout(&self) -> impl Future<Output = Result<()>> + 'static {
         let url = self.url("auth", "logout");
         let fut = self.inner.post(url).send();
         async move {
@@ -111,19 +111,14 @@ impl QbClient {
             bail!("Add torrent failed, status: {}", response.status())
         }
     }
-}
 
-// 阻塞地等待登出
-impl Drop for QbClient {
-    fn drop(&mut self) {
-        let logout_fut = self.logout();
-        let handle = tokio::runtime::Handle::current();
-        std::thread::spawn(move || {
-            if let Err(e) = handle.block_on(logout_fut) {
-                error!("client logout failed: {}", e);
-            }
-        })
-        .join()
-        .unwrap();
+    pub async fn list_torrent(&self, tag: &str) -> Result<Vec<request::Torrent>> {
+        let url = self.url("torrents", "info");
+        let response = self.inner.post(&url).query(&[("tag", tag)]).send().await?;
+        if !response.status().is_success() {
+            bail!("Add torrent failed, status: {}", response.status())
+        }
+        let torrents = response.json::<Vec<request::Torrent>>().await?;
+        Ok(torrents)
     }
 }

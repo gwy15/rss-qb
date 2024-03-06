@@ -13,6 +13,8 @@ pub struct Config {
 
     pub tmdb_secret: String,
 
+    pub link_to: PathBuf,
+
     /// request timeout
     #[serde(default = "default_timeout")]
     pub timeout_s: u64,

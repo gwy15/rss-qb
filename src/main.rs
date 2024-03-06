@@ -12,12 +12,12 @@ async fn main() -> Result<()> {
     }
     pretty_env_logger::init_timed();
 
-    let config_path = std::env::args()
-        .nth(1)
-        .unwrap_or_else(|| "config.toml".to_string());
-    let path = std::path::PathBuf::from_str(&config_path)?;
+    let path = std::path::PathBuf::from_str("config.toml")?;
 
-    rss_qb::runner::run_watching(path).await?;
-
-    Ok(())
+    let server = rss_qb::server::main();
+    let runner = rss_qb::runner::run_watching(path);
+    tokio::select! {
+        r = server => r,
+        r = runner => r
+    }
 }

@@ -1,3 +1,5 @@
+use serde::Deserialize;
+
 pub struct AddTorrentRequest {
     pub urls: Vec<String>,
     pub torrents: Vec<Vec<u8>>,
@@ -7,4 +9,10 @@ pub struct AddTorrentRequest {
     pub tags: Vec<String>,
     pub rename: Option<String>,
     pub auto_torrent_management: Option<bool>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct Torrent {
+    pub content_path: String,
+    pub name: String,
 }

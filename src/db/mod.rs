@@ -10,3 +10,6 @@ pub use item::Item;
 
 mod tmdb;
 pub use tmdb::TmdbShow;
+
+mod torrent_info;
+pub use torrent_info::TorrentInfo;

@@ -65,6 +65,7 @@ impl RssFeed {
             if let Some(tmdb) = mapper.get(&item.1.show) {
                 item.1.show = tmdb.tmdb_name.clone();
                 item.1.year = tmdb.year;
+                item.1.tmdb_id = tmdb.tmdb_id;
             }
         }
 
@@ -72,16 +73,35 @@ impl RssFeed {
         qb_client.login().await?;
         for (item, info) in items {
             info!("series {} new episode {info:?}", self.name());
-            let r = qb_client
+
+            // insert into db
+            let torrent_id = db::TorrentInfo::gen_id();
+            db::TorrentInfo {
+                id: torrent_id,
+                name: info.show.clone(),
+                year: info.year,
+                season: info.season,
+                episode: info.episode,
+                fansub: info.fansub.clone(),
+                resolution: info.resolution.clone(),
+                language: info.language.clone(),
+                tmdb_id: info.tmdb_id,
+            }
+            .insert(pool)
+            .await?;
+
+            let mut tags = self.base.tags.clone();
+            tags.push(info.show.clone());
+            qb_client
                 .add_torrent(crate::request::AddTorrentRequest {
                     urls: vec![item.enclosure.clone()],
                     torrents: vec![],
                     savepath: self.base.savepath.clone(),
                     content_layout: self.base.content_layout.map(|i| i.to_string()),
                     category: self.base.category.clone(),
-                    tags: self.base.tags.clone(),
+                    tags,
                     rename: Some(format!(
-                        "{anime} - S{season}E{ep} - {resolution} - {language} - {fansub}",
+                        "{anime} - S{season:02}E{ep:02} - {resolution} - {language} - {fansub} - tid{torrent_id}",
                         anime = info.show,
                         season = info.season,
                         ep = info.episode,

@@ -6,8 +6,8 @@
 其中，
 - 电视剧的名字使用标题中的名字。请优先使用翻译的中文名字，如果没有就使用原标题中出现的原名。
 - 分辨率使用 720p 或者 1080p。
-- 字幕语言使用“生肉、简体中文、繁体中文、简繁中文、简日双语、繁日双语”。生肉指没有翻译字幕。CHS / CHT 分别指简体和繁体。
-- 对于集数，如果是合集，则输出如 1-24。
+- 字幕语言使用“简中、繁中、简繁、简日、繁日、生肉”。文件名中的 CHS / CHT 分别指简体中文和繁体中文。生肉指没有翻译字幕。
+- 对于 season 和 episode，如果是合集，则返回 { "type": "other" }
 
 如果输入的文件名不是电视剧集，而是原声带、大电影、剧场版等非剧集内容（通常文件名会包含 OP、ED、flag、320k 等描述音乐或电影的字眼，同时缺少剧集信息），则该行输出 { "type": "other" }
 
@@ -22,11 +22,13 @@
 ```
 [LoliHouse] 治愈魔法的错误使用方法 / Chiyu Mahou no Machigatta Tsukaikata - 09 [WebRip 1080p HEVC-10bit AAC][简繁内封字幕]
 [MagicStar] Mars-零之革命- / マルス-ゼロの革命- EP06 [WEBDL] [1080p]【生】【解说放送版】【附日字】
+[ANi]  秒殺外掛太強了，異世界的傢伙們根本就不是對手。 - 04 [1080P][Baha][WEB-DL][AAC AVC][CHT][MP4]
 ```
 输出：
 ```
 [
-    { "type": "show", "fansub": "LoliHouse", "show": "治愈魔法的错误使用方法", "season": "1", "episode": "9", "resolution": "1080p", "language": "简繁中文" },
-    { "type": "show", "fansub": "MagicStar", "show": "Mars-零之革命-", "season": "1", "episode": "6", "resolution": "1080p", "language": "生肉" }
+    { "type": "show", "fansub": "LoliHouse", "show": "治愈魔法的错误使用方法", "season": 1, "episode": 9, "resolution": "1080p", "language": "简繁" },
+    { "type": "show", "fansub": "MagicStar", "show": "Mars-零之革命-", "season": 1, "episode": 6, "resolution": "1080p", "language": "生肉" },
+    { "type": "show", "fansub": "ANi", "show": "秒殺外掛太強了，異世界的傢伙們根本就不是對手。", "season": 1, "episode": 4, "resolution": "1080p", "language": "繁中" },
 ]
 ```
