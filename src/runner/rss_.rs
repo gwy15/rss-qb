@@ -1,6 +1,9 @@
+use std::collections::HashSet;
+
 use crate::config::RssFeed;
 use crate::db;
 use crate::gpt;
+use crate::tmdb;
 use crate::QbClient;
 use anyhow::bail;
 use anyhow::{Context, Result};
@@ -34,21 +37,42 @@ impl RssFeed {
         if items.is_empty() {
             return Ok(vec![]);
         }
+
         // GPT 提取并过滤剧集信息
         let titles = items.iter().map(|s| s.title.clone()).collect::<Vec<_>>();
         let info = crate::gpt::get_episode_info(&titles, &config.gpt).await?;
-        let items = items.into_iter().zip(info).filter_map(|(item, info)| {
-            let gpt::Recognized::Show(info) = info else {
-                return None;
-            };
-            Some((item, info))
-        });
+        let mut items = items
+            .into_iter()
+            .zip(info)
+            .filter_map(|(item, info)| {
+                let gpt::Recognized::Show(info) = info else {
+                    return None;
+                };
+                Some((item, info))
+            })
+            .collect::<Vec<_>>();
+
+        // 用 tmdb 获取正确的剧名
+        let titles = items
+            .iter()
+            .map(|(_, info)| info.show.clone())
+            .collect::<HashSet<_>>();
+        debug!("query tmdb for titles: {titles:?}");
+        let mapper =
+            tmdb::get_info(request_client.clone(), &config.tmdb_secret, titles, pool).await?;
+        debug!("tmdb map: {mapper:#?}");
+        for item in items.iter_mut() {
+            if let Some(tmdb) = mapper.get(&item.1.show) {
+                item.1.show = tmdb.tmdb_name.clone();
+                item.1.year = tmdb.year;
+            }
+        }
 
         let mut answer = vec![];
-        // qb_client.login().await?;
+        qb_client.login().await?;
         for (item, info) in items {
             info!("series {} new episode {info:?}", self.name());
-            qb_client
+            let r = qb_client
                 .add_torrent(crate::request::AddTorrentRequest {
                     urls: vec![item.enclosure.clone()],
                     torrents: vec![],

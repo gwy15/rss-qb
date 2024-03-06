@@ -103,6 +103,9 @@ impl QbClient {
         let response = self.inner.post(&url).multipart(form).send().await?;
         if response.status().is_success() {
             info!("add torrent success");
+            if let Ok(body) = response.text().await {
+                debug!("body = {body}");
+            }
             Ok(())
         } else {
             bail!("Add torrent failed, status: {}", response.status())

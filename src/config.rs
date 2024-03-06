@@ -11,6 +11,8 @@ pub struct Config {
     #[serde(default, deserialize_with = "deserialize_proxy")]
     pub https_proxy: Option<reqwest::Proxy>,
 
+    pub tmdb_secret: String,
+
     /// request timeout
     #[serde(default = "default_timeout")]
     pub timeout_s: u64,

@@ -27,6 +27,8 @@ pub struct ShowInfo {
     pub episode: String,
     pub resolution: String,
     pub language: String,
+    #[serde(skip_deserializing)]
+    pub year: i64,
 }
 
 pub async fn get_episode_info(titles: &[String], config: &GptConfig) -> Result<Vec<Recognized>> {

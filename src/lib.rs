@@ -12,3 +12,4 @@ pub use client::QbClient;
 pub use config::Config;
 
 pub mod gpt;
+pub mod tmdb;
