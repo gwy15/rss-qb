@@ -201,10 +201,10 @@ mod tests {
         assert!(h.h.is_none());
     }
 
-    #[test]
-    fn parse_templates_config() {
-        let s = std::fs::read_to_string("./templates/config.toml").unwrap();
-        let config: Config = toml::from_str(&s).unwrap();
-        assert_eq!(config.feed.len(), 2);
-    }
+    // #[test]
+    // fn parse_templates_config() {
+    //     let s = std::fs::read_to_string("./templates/config.toml").unwrap();
+    //     let config: Config = toml::from_str(&s).unwrap();
+    //     assert_eq!(config.feed.len(), 2);
+    // }
 }

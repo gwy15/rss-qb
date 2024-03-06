@@ -21,6 +21,8 @@ url = "2.2.2"
 regex = "1.5.5"
 serde_regex = "1.1.0"
 serde_json = "1.0.114"
+async-openai = "0.19.0"
+tmdb-api = "0.7.0"
 
 [dependencies.piratebay]
 path = "./piratebay"

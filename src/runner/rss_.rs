@@ -1,5 +1,6 @@
 use crate::config::RssFeed;
 use crate::db;
+use crate::gpt;
 use crate::QbClient;
 use anyhow::bail;
 use anyhow::{Context, Result};
@@ -19,47 +20,33 @@ impl RssFeed {
             .get_items(&request_client)
             .await
             .context("get torrents from url failed")?;
-        // 过滤已经添加的，从这里开始有 DB 操作
 
-        let mut to_add_items = vec![];
+        // 过滤处理过的
+        let mut filtered_items = vec![];
         for item in items.into_iter().filter(|i| self.base.filter(i)) {
             if db::Item::exists(&item.guid, pool).await? {
                 debug!("item {} already exists in DB, skip", item.title);
                 continue;
             }
-            to_add_items.push(item);
+            filtered_items.push(item);
         }
-
-        if to_add_items.is_empty() {
+        let items = filtered_items;
+        if items.is_empty() {
             return Ok(vec![]);
         }
-        // 提取剧集信息
-        let titles = to_add_items
-            .iter()
-            .map(|s| s.title.clone())
-            .collect::<Vec<_>>();
+        // GPT 提取并过滤剧集信息
+        let titles = items.iter().map(|s| s.title.clone()).collect::<Vec<_>>();
         let info = crate::gpt::get_episode_info(&titles, &config.gpt).await?;
-        if info.len() != to_add_items.len() {
-            bail!(
-                "gpt 提取的 length 不一致，to_add_items.len = {}, gpt_extract.len = {}",
-                to_add_items.len(),
-                info.len()
-            );
-        }
-
-        let mut tx = db::EpTransaction::new(pool.clone());
-        qb_client.login().await?;
-        for (item, info) in to_add_items.iter().zip(info) {
-            let ep = db::SeriesEpisode {
-                series_name: self.name().to_string(),
-                series_season: info.season.clone(),
-                series_episode: info.episode.clone(),
-                item_guid: item.guid.to_string(),
+        let items = items.into_iter().zip(info).filter_map(|(item, info)| {
+            let gpt::Recognized::Show(info) = info else {
+                return None;
             };
-            if ep.exists(&tx).await? {
-                debug!("item {} already exists in series, skip", item.title);
-                continue;
-            }
+            Some((item, info))
+        });
+
+        let mut answer = vec![];
+        // qb_client.login().await?;
+        for (item, info) in items {
             info!("series {} new episode {info:?}", self.name());
             qb_client
                 .add_torrent(crate::request::AddTorrentRequest {
@@ -71,7 +58,7 @@ impl RssFeed {
                     tags: self.base.tags.clone(),
                     rename: Some(format!(
                         "{anime} - S{season}E{ep} - {resolution} - {language} - {fansub}",
-                        anime = info.anime,
+                        anime = info.show,
                         season = info.season,
                         ep = info.episode,
                         resolution = info.resolution,
@@ -84,12 +71,11 @@ impl RssFeed {
                 .context("add torrent failed")?;
             info!("种子 {} {info:?} 成功添加到 QB", item.title);
 
-            ep.insert(&mut tx).await?;
             item.insert(pool).await?;
+            answer.push(item);
         }
 
-        tx.commit();
-        Ok(to_add_items)
+        Ok(answer)
     }
 
     async fn get_items(&self, client: &reqwest::Client) -> Result<Vec<db::Item>> {
