@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO `tmdb_info`\n                (`name`, `tmdb_name`, `year`, `tmdb_id`)\n            VALUES\n                (?, ?, ?, ?);",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "fddfe6cdb88ff6de101c6310242482d2c8ec0164d5be539357de3db2bf724e7c"
+}

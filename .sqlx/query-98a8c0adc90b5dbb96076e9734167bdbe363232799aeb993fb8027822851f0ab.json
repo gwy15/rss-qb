@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO `torrent_info`\n                (`id`, `name`, `year`, `season`, `episode`, `fansub`, `resolution`, `language`, `tmdb_id`)\n            VALUES\n                (?, ?, ?, ?, ?, ?, ?, ?, ?);\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 9
+    },
+    "nullable": []
+  },
+  "hash": "98a8c0adc90b5dbb96076e9734167bdbe363232799aeb993fb8027822851f0ab"
+}

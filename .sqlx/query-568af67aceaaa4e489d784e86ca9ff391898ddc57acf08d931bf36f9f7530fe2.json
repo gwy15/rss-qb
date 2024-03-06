@@ -1,0 +1,68 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT\n                `id`, `name`, `year`, `season`, `episode`, `fansub`, `resolution`, `language`, `tmdb_id`\n            FROM\n                `torrent_info`\n            WHERE\n                `id` = ?\n            LIMIT\n                1;",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Int64"
+      },
+      {
+        "name": "name",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "year",
+        "ordinal": 2,
+        "type_info": "Int64"
+      },
+      {
+        "name": "season",
+        "ordinal": 3,
+        "type_info": "Int64"
+      },
+      {
+        "name": "episode",
+        "ordinal": 4,
+        "type_info": "Int64"
+      },
+      {
+        "name": "fansub",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "resolution",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "language",
+        "ordinal": 7,
+        "type_info": "Text"
+      },
+      {
+        "name": "tmdb_id",
+        "ordinal": 8,
+        "type_info": "Int64"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "568af67aceaaa4e489d784e86ca9ff391898ddc57acf08d931bf36f9f7530fe2"
+}
