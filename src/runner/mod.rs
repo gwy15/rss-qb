@@ -123,7 +123,8 @@ async fn load_config(path: &Path) -> Result<Config> {
     let config_str = tokio::fs::read_to_string(path)
         .await
         .with_context(|| format!("Cannot read config path {}", path.display()))?;
-    let config = toml::from_str::<Config>(&config_str).context("Config file corrupted")?;
+    let mut config = toml::from_str::<Config>(&config_str).context("Config file corrupted")?;
+    config.update_default();
     Ok(config)
 }
 
@@ -135,7 +136,7 @@ async fn loop_feed(
     pool: db::Pool,
     config: &Config,
 ) -> Result<()> {
-    let secs = feed.base().interval_s;
+    let secs = feed.base().interval_s();
     let mut timer = tokio::time::interval(std::time::Duration::from_secs(secs));
     let mut error_counter = 0;
     loop {

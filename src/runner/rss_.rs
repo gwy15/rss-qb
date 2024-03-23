@@ -18,7 +18,7 @@ impl RssFeed {
         pool: &db::Pool,
         config: &crate::Config,
     ) -> Result<Vec<db::Item>> {
-        info!("Fetching feed {}", self.name());
+        info!("Fetching feed {}", self.name);
         let items = self
             .get_items(request_client)
             .await
@@ -72,7 +72,7 @@ impl RssFeed {
         let mut answer = vec![];
         qb_client.login().await?;
         for (item, info) in items {
-            info!("series {} new episode {info:?}", self.name());
+            info!("series {} new episode {info:?}", self.name);
 
             // insert into db
             let torrent_id = db::TorrentInfo::gen_id();
@@ -90,7 +90,7 @@ impl RssFeed {
             .insert(pool)
             .await?;
 
-            let mut tags = self.base.tags.clone();
+            let mut tags = self.base.tags.clone().unwrap_or_default();
             tags.push(info.show.clone());
             qb_client
                 .add_torrent(crate::request::AddTorrentRequest {
@@ -109,7 +109,8 @@ impl RssFeed {
                         language = info.language,
                         fansub = info.fansub
                     )),
-                    auto_torrent_management: Some(self.base.auto_torrent_management),
+                    auto_torrent_management: self.base.auto_torrent_management,
+                    ratio_limit: self.base.ratio_limit,
                 })
                 .await
                 .context("add torrent failed")?;
@@ -128,22 +129,22 @@ impl RssFeed {
             .get(url.clone())
             .send()
             .await
-            .with_context(|| format!("request {} failed", self.name()))?;
+            .with_context(|| format!("request {} failed", self.name))?;
         let status = r.status();
         if !status.is_success() {
-            debug!("feed={}, get url {url} failed: {status:?}", self.name());
+            debug!("feed={}, get url {url} failed: {status:?}", self.name);
             debug!(
                 "feed={}, url={url}, text: {:?}",
-                self.name(),
+                self.name,
                 r.text().await.ok()
             );
-            bail!("feed '{}' HTTP status is '{status}'", self.name());
+            bail!("feed '{}' HTTP status is '{status}'", self.name);
         }
         let s = r.bytes().await.context("failed to fetch body")?;
         let channel = rss::Channel::read_from(&s[..]).context("failed to parse as rss channel")?;
         info!(
             "feed {} (channel name {}) fetched {} items",
-            self.name(),
+            self.name,
             channel.title,
             channel.items.len()
         );

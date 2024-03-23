@@ -24,8 +24,28 @@ pub struct Config {
     pub gpt: GptConfig,
 
     pub qb: QbConfig,
+
+    pub default: FeedBase,
+
     #[serde(default)]
     pub feed: Vec<Feed>,
+}
+impl Config {
+    pub fn update_default(&mut self) {
+        let d = &self.default;
+        for feed in self.feed.iter_mut() {
+            let b = feed.base_mut();
+            b.interval_s = b.interval_s.or(d.interval_s).or(Some(default_interval()));
+            b.savepath = b.savepath.take().or_else(|| d.savepath.clone());
+            b.content_layout = b.content_layout.or(d.content_layout);
+            b.category = b.category.take().or_else(|| d.category.clone());
+            b.tags = b.tags.take().or_else(|| d.tags.clone());
+            b.auto_torrent_management = b.auto_torrent_management.or(d.auto_torrent_management);
+            b.ratio_limit = b.ratio_limit.or(d.ratio_limit);
+            b.filters = b.filters.take().or_else(|| d.filters.clone());
+            b.not_filters = b.not_filters.take().or_else(|| d.not_filters.clone());
+        }
+    }
 }
 
 fn default_timeout() -> u64 {
@@ -61,27 +81,30 @@ pub enum Feed {
     Rss(RssFeed),
 }
 impl Feed {
+    pub fn name(&self) -> &str {
+        match self {
+            Self::Rss(rss) => &rss.name,
+        }
+    }
     pub fn base(&self) -> &FeedBase {
         match self {
             Self::Rss(rss) => &rss.base,
         }
     }
-    pub fn name(&self) -> &str {
-        &self.base().name
+    fn base_mut(&mut self) -> &mut FeedBase {
+        match self {
+            Self::Rss(rss) => &mut rss.base,
+        }
     }
 }
 
 #[derive(Deserialize, Clone)]
 pub struct RssFeed {
+    pub name: String,
     pub site: RssSite,
     pub search: String,
     #[serde(flatten)]
     pub base: FeedBase,
-}
-impl RssFeed {
-    pub fn name(&self) -> &str {
-        &self.base.name
-    }
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -95,10 +118,7 @@ pub enum RssSite {
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct FeedBase {
-    pub name: String,
-
-    #[serde(default = "default_interval")]
-    pub interval_s: u64,
+    pub interval_s: Option<u64>,
     /// Download folder
     pub savepath: Option<String>,
     /// content layout
@@ -109,30 +129,33 @@ pub struct FeedBase {
     pub category: Option<String>,
 
     /// Tags for the torrent
-    #[serde(default)]
-    pub tags: Vec<String>,
+    pub tags: Option<Vec<String>>,
 
     /// Whether Automatic Torrent Management should be used
-    #[serde(default = "bool::default")]
-    pub auto_torrent_management: bool,
+    pub auto_torrent_management: Option<bool>,
+
+    pub ratio_limit: Option<f64>,
 
     /// filter，要包含的正则
     #[serde(default, with = "serde_regex")]
-    pub filters: Vec<regex::Regex>,
+    pub filters: Option<Vec<regex::Regex>>,
 
     /// not_filters，排除的正则
     #[serde(default, with = "serde_regex")]
-    pub not_filters: Vec<regex::Regex>,
+    pub not_filters: Option<Vec<regex::Regex>>,
 }
 impl FeedBase {
+    pub fn interval_s(&self) -> u64 {
+        self.interval_s.unwrap_or_else(default_interval)
+    }
     pub fn filter(&self, item: &crate::db::Item) -> bool {
-        for filter in self.filters.iter() {
+        for filter in self.filters.as_deref().unwrap_or_default() {
             if !filter.is_match(&item.title) {
                 debug!("item {} filtered out.", item.title);
                 return false;
             }
         }
-        for filter in self.not_filters.iter() {
+        for filter in self.not_filters.as_deref().unwrap_or_default() {
             if filter.is_match(&item.title) {
                 debug!("item {} filtered out by not filters.", item.title);
                 return false;

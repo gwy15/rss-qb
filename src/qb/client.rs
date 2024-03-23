@@ -98,6 +98,9 @@ impl QbClient {
         if let Some(auto_torrent_management) = req.auto_torrent_management {
             form = form.part("autoTMM", Part::text(auto_torrent_management.to_string()));
         }
+        if let Some(ratio_limit) = req.ratio_limit {
+            form = form.part("ratioLimit", Part::text(ratio_limit.to_string()));
+        }
 
         let url = self.url("torrents", "add");
         let response = self.inner.post(&url).multipart(form).send().await?;

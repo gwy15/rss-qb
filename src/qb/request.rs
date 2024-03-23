@@ -9,6 +9,7 @@ pub struct AddTorrentRequest {
     pub tags: Vec<String>,
     pub rename: Option<String>,
     pub auto_torrent_management: Option<bool>,
+    pub ratio_limit: Option<f64>,
 }
 
 #[derive(Debug, Deserialize)]

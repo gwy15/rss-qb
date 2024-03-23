@@ -19,7 +19,8 @@ async fn on_hook(body: bytes::Bytes) -> Result<()> {
     // load config
     let path = "config.toml".parse::<std::path::PathBuf>()?;
     let config = tokio::fs::read_to_string(path).await?;
-    let config = toml::from_str::<Config>(&config).context("Invalid toml config")?;
+    let mut config = toml::from_str::<Config>(&config).context("Invalid toml config")?;
+    config.update_default();
     debug!("config loaded");
 
     // load from tid

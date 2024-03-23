@@ -24,6 +24,16 @@ retry = 3
 better_model = "gpt-4-turbo"
 better_since = 4
 
+[default]
+# interval_s = 900
+# savepath = "/video/download/bt"
+# content_layout = "NoSubfolder"
+# category = "BT"
+# auto_torrent_management: false
+# ratio_limit: 2.0
+# filters: ["regex"]
+# not_filters: ["regex"]
+
 # RSS 订阅
 [[feed]]
 name = "秒杀外挂"
@@ -31,10 +41,3 @@ type = "rss"
 site = "comicat"
 search = "秒杀外挂"
 savepath = '/download/anime/'
-# interval_s = 900 # 默认 15 分钟刷新一次
-# content_layout = 'NoSubfolder'
-# category = "BT"
-# tags = ["动漫花园", "测不准的阿波连同学", "动画"]    # qb 的标签
-# auto_torrent_management = false # 是否使用 qb 的自动种子管理
-# filters = ["S05E[123]", "CAKES$"] # 正则
-# not_filters = ["REPACK"] # regex
