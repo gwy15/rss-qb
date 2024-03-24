@@ -107,7 +107,11 @@ async fn get_episode_info_raw(
 
     let choice = response.choices.pop().context("no choice?")?;
     let content = choice.message.content.unwrap_or_default();
-    let content = content.trim().trim_matches('`').trim();
+    let content = content
+        .trim()
+        .trim_matches('`')
+        .trim_start_matches("json")
+        .trim();
 
     let content = serde_json::from_str::<Vec<Recognized>>(content)
         .with_context(|| format!("parse as result failed: content = {content:?}"))?;
